@@ -68,7 +68,7 @@ public class HumanBehavior : MonoBehaviour{
             if (this.target == null)
             {
                 GameObject[] freeze = GameObject.FindGameObjectsWithTag("Freeze");
-                if (GetComponent<FieldOfView>().visibleTargets.Count > 0)
+                if (gameObject.layer == 9 && GetComponent<FieldOfView>().visibleTargets.Count > 0)
                 {
                     float distance = 10000f;
                     foreach (Transform go in GetComponent<FieldOfView>().visibleTargets)
@@ -79,8 +79,8 @@ public class HumanBehavior : MonoBehaviour{
                             target = go.gameObject;
                             distance = temp_dis;
                         }
-
                     }
+                    target.GetComponent<HumanBehavior>().target = gameObject;
                 }
                 else if (freeze.Length > 0 && gameObject.layer == 8)
                 {
@@ -100,13 +100,14 @@ public class HumanBehavior : MonoBehaviour{
                 {
                     if (gameObject.layer == 9 && (Vector3.Distance(target.transform.position, transform.position) > viewRadius || target.layer == 10))
                     {
+                        this.target.GetComponent<HumanBehavior>().target = null;
                         this.target = null;
                     }
                     else if (target.layer == 10)
                     {
                         Align(target);
                         KenimaticArrive(target);
-                        if (Unfreeze())
+                        if (Unfreeze() || target.layer == 8)
                         {
                             target = null;
                         }
@@ -120,13 +121,14 @@ public class HumanBehavior : MonoBehaviour{
                 {
                     if (gameObject.layer == 9 && (Vector3.Distance(target.transform.position, transform.position) > viewRadius || target.layer == 10))
                     {
+                        this.target.GetComponent<HumanBehavior>().target = null;
                         this.target = null;
                     }
                     else if (target.layer == 10)
                     {
                         Align(target);
                         SteeringArrive(target.transform.position);
-                        if (Unfreeze())
+                        if (Unfreeze() || target.layer == 8)
                         {
                             target = null;
                         }
@@ -157,16 +159,24 @@ public class HumanBehavior : MonoBehaviour{
             transform.position = new Vector3(transform.position.x, 0f, z_limit);
 
         ChangeViewAngle();
+
+        if (GetComponent<Rigidbody>().velocity.magnitude > maxium_velocity_magnitude)
+        {
+            GetComponent<Rigidbody>().velocity = maxium_velocity_magnitude * GetComponent<Rigidbody>().velocity.normalized;
+        }
+        transform.position = new Vector3(transform.position.x, 0, transform.position.z);
     }
 
 	void KenimaticImplementation () {
 		if (gameObject.tag == "Hunter") {
 			if (GetComponent<Rigidbody> ().velocity.magnitude < 5f) {
+                Debug.Log("A");
 				KenimaticImplementationA ();
 			} else {
-				KenimaticImplementationB ();
+                Debug.Log("B");
+                KenimaticImplementationB ();
 			}
-		} else if (gameObject.tag == "Prey") {
+		} else if (gameObject.tag == "Prey" && target.layer == 9) {
 			KenimaticImplementationC ();
 		}
 	}
@@ -208,7 +218,7 @@ public class HumanBehavior : MonoBehaviour{
 			} else {
 				SteeringImplementationB ();
 			}
-		} else if (gameObject.layer == 8) {
+		} else if (gameObject.layer == 8 && target.layer == 9) {
 			SteeringImplementationC ();
 		}
 	}
@@ -237,7 +247,6 @@ public class HumanBehavior : MonoBehaviour{
 		if (Vector3.Distance (transform.position, target.transform.position) < short_distance) {
 			SteeringLeave (target.transform.position);
 		} else {
-			GetComponent<Rigidbody> ().velocity = Vector3.zero;
 			AlignBack (target);
 			SteeringLeave (target.transform.position);
 		}
@@ -298,7 +307,7 @@ public class HumanBehavior : MonoBehaviour{
 	}
 
 	Vector3 SteeringAcceleration (Vector3 target) {
-        if (gameObject.layer == 8)
+        if (gameObject.layer == 8 && this.target.layer != 10)
         {
             return acceleration + maxium_acceleration * (transform.position - target).normalized * Time.deltaTime;
         }
@@ -315,36 +324,29 @@ public class HumanBehavior : MonoBehaviour{
 	}
 
 	void SteeringArrive (Vector3 target) {
-		float distance = (target - transform.position).magnitude;
+        float distance = (target - transform.position).magnitude;
 		if (distance <= slow_down_radius && distance > arrive_radius) {
 			float goal_velocity_magnitude = 8f * distance / slow_down_radius;
 			goal_velocity_magnitude = Mathf.Min (goal_velocity_magnitude, maxium_velocity_magnitude);
 			Vector3 goal_velocity = goal_velocity_magnitude * Direction(target);
-			acceleration = (goal_velocity - GetComponent<Rigidbody>().velocity) / Time.deltaTime;
-            if (acceleration.magnitude > maxium_acceleration)
-            {
-                acceleration = maxium_acceleration * acceleration.normalized;
-            }
+            acceleration = (goal_velocity - GetComponent<Rigidbody>().velocity) / Time.deltaTime;
 		} else if (distance <= arrive_radius) {
 			acceleration = Vector3.zero;
             GetComponent<Rigidbody>().velocity = Vector3.zero;
 		} else {
 			acceleration = SteeringAcceleration (target);
 		}
-		gameObject.GetComponent<Rigidbody> ().AddForce (acceleration, ForceMode.Acceleration);
-        if (gameObject.GetComponent<Rigidbody>().velocity.magnitude > maxium_velocity_magnitude)
+        if (acceleration.magnitude > maxium_acceleration)
         {
-            GetComponent<Rigidbody>().velocity = maxium_velocity_magnitude * GetComponent<Rigidbody>().velocity.normalized;
+            acceleration = maxium_acceleration * acceleration.normalized;
         }
+        acceleration = new Vector3(acceleration.x, 0, acceleration.z);
+		gameObject.GetComponent<Rigidbody> ().AddForce (acceleration, ForceMode.Acceleration);
 	}
 
 	void SteeringLeave (Vector3 target) {
-		acceleration = SteeringAcceleration (target);
-		gameObject.GetComponent<Rigidbody> ().AddForce (acceleration, ForceMode.Acceleration);
-        if (GetComponent<Rigidbody>().velocity.magnitude > maxium_velocity_magnitude)
-        {
-            GetComponent<Rigidbody>().velocity = maxium_velocity_magnitude * GetComponent<Rigidbody>().velocity.normalized;
-        }
+        acceleration = SteeringAcceleration (target);
+		gameObject.GetComponent<Rigidbody> ().AddForce (acceleration, ForceMode.Acceleration); 
 	}
 
 	void SteeringPurse (GameObject target) {
@@ -355,14 +357,32 @@ public class HumanBehavior : MonoBehaviour{
 	}
 
 	void Align (GameObject target) {
-		Vector3 direciton = Direction (target);
-		Quaternion look_where_going = Quaternion.LookRotation (GetComponent<Rigidbody>().velocity.normalized);
+        Quaternion look_where_going;
+        if (target != null)
+        {
+            Vector3 direciton = Direction(target);
+            look_where_going = Quaternion.LookRotation(direciton);
+        }
+		else
+        {
+            look_where_going = Quaternion.LookRotation(GetComponent<Rigidbody>().velocity.normalized);
+        }
+		
 		transform.rotation = Quaternion.RotateTowards (transform.rotation, look_where_going, maixum_angular_velocity_magnitude);
 	}
 
 	void AlignBack (GameObject target) {
-		Vector3 direciton = -Direction (target);
-        Quaternion look_where_going = Quaternion.LookRotation(direciton);
+        Quaternion look_where_going;
+        if (target != null)
+        {
+            Vector3 direciton = Direction(target);
+            direciton = new Vector3(-direciton.x, 0, -direciton.z);
+            look_where_going = Quaternion.LookRotation(direciton);
+        }
+        else
+        {
+            look_where_going = Quaternion.LookRotation(GetComponent<Rigidbody>().velocity.normalized);
+        }
         transform.rotation = Quaternion.RotateTowards(transform.rotation, look_where_going, maixum_angular_velocity_magnitude);
     }
 
@@ -416,10 +436,6 @@ public class HumanBehavior : MonoBehaviour{
         else
         {
             wondTimer += Time.deltaTime;
-        }
-        if (gameObject.layer == 9)
-        {
-            Debug.Log("temp_target" + temp_target);
         }
     }
 

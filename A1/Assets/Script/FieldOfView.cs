@@ -51,24 +51,24 @@ public class FieldOfView : MonoBehaviour {
                 //}
             }
         }
-        else if (layer == 8)
-        {
-            Collider[] targetInViewRadius = Physics.OverlapSphere(transform.position, viewRadius, targetLayer);
+        //else if (layer == 8)
+        //{
+        //    Collider[] targetInViewRadius = Physics.OverlapSphere(transform.position, viewRadius, targetLayer);
 
-            for (int i = 0; i < targetInViewRadius.Length; i++)
-            {
-                Transform target = targetInViewRadius[i].transform;
-                Vector3 direction_to_target = (target.position - transform.position).normalized;
+        //    for (int i = 0; i < targetInViewRadius.Length; i++)
+        //    {
+        //        Transform target = targetInViewRadius[i].transform;
+        //        Vector3 direction_to_target = (target.position - transform.position).normalized;
 
-                float disToTarget = Vector3.Distance(transform.position, target.position);
+        //        float disToTarget = Vector3.Distance(transform.position, target.position);
 
-                if (!Physics.Raycast(transform.position, direction_to_target, disToTarget, obstacleLayer))
-                {
-                    visibleTargets.Add(target);
-                }
+        //        if (!Physics.Raycast(transform.position, direction_to_target, disToTarget, obstacleLayer))
+        //        {
+        //            visibleTargets.Add(target);
+        //        }
 
-            }
-        }
+        //    }
+        //}
 
     }
 
