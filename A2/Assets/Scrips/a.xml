@@ -1,0 +1,18 @@
+<behavior-tree>
+	<sequence>
+		<not>
+			<condition name = "target-catched" />
+		</not>
+		<selector>
+			<sequence>
+                <condition name = "target-in-vision" />
+                <leaf name = "seek-it" />
+			</sequence>
+			<sequence>
+				<condition name = "target-fleeing" />
+				<leaf name = "flank-it" />
+            </sequence>
+            <leaf name = "wander" />
+		</selector>
+	</sequence>
+</behavior-tree>
